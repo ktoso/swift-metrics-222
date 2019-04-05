@@ -16,8 +16,10 @@
 @testable import class CoreMetrics.Timer
 import Foundation
 
-internal class TestMetrics: MetricsFactory {
-    private let lock = NSLock() // TODO: consider lock per cache?
+/// Metrics factory which allows inspecting recorded metrics programmatically.
+/// Only intended for tests of the Metrics API itself.
+internal final class TestMetrics: MetricsFactory {
+    private let lock = NSLock()
     var counters = [String: CounterHandler]()
     var recorders = [String: RecorderHandler]()
     var timers = [String: TimerHandler]()
@@ -38,10 +40,28 @@ internal class TestMetrics: MetricsFactory {
     }
 
     private func make<Item>(label: String, dimensions: [(String, String)], registry: inout [String: Item], maker: (String, [(String, String)]) -> Item) -> Item {
-        let item = maker(label, dimensions)
         return self.lock.withLock {
+            let item = maker(label, dimensions)
             registry[label] = item
             return item
+        }
+    }
+
+    func destroyCounter(_ handler: CounterHandler) {
+        if let testCounter = handler as? TestCounter {
+            self.counters.removeValue(forKey: testCounter.label)
+        }
+    }
+
+    func destroyRecorder(_ handler: RecorderHandler) {
+        if let testRecorder = handler as? TestRecorder {
+            self.recorders.removeValue(forKey: testRecorder.label)
+        }
+    }
+
+    func destroyTimer(_ handler: TimerHandler) {
+        if let testTimer = handler as? TestTimer {
+            self.timers.removeValue(forKey: testTimer.label)
         }
     }
 }
@@ -131,6 +151,17 @@ internal class TestTimer: TimerHandler, Equatable {
             values.append((Date(), duration))
         }
         print("recoding \(duration) \(self.label)")
+    }
+
+    func destroy() {
+        // Depending on metrics backend implementation the handler could:
+        // a) keep a reference to the factory that created it, and delegate the destroy there
+        //    - this is better than reaching to MetricsSystem.factory, since e.g. in tests the factory could have changed,
+        //      although in user applications it is guaranteed that the factory is only bootstrapped once.
+        // b) not have any state to destroy in the factory, and only clear its state locally inside here
+        // c) explicitly decide to ignore destroying, and implement this as no-op
+        let factory = MetricsSystem.factory // FIXME: makes unsafe to run tests in parallel; rather, pass reference when creating handler
+        factory.destroyTimer(self)
     }
 
     public static func == (lhs: TestTimer, rhs: TestTimer) -> Bool {
