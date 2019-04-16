@@ -241,7 +241,7 @@ class MetricsTests: XCTestCase {
         XCTAssertTrue(counter2.handler is CustomHandler, "expected custom log handler")
     }
 
-    func testReleasingMetrics() throws {
+    func testDestroyingGauge() throws {
         let metrics = TestMetrics()
         MetricsSystem.bootstrapInternal(metrics)
 
@@ -257,7 +257,7 @@ class MetricsTests: XCTestCase {
         XCTAssertEqual(metrics.recorders.count, 1, "recorder should have been stored")
 
         let identity = ObjectIdentifier(recorder)
-        MetricsSystem.factory.destroyRecorder(gauge)
+        gauge.destroy()
         XCTAssertEqual(metrics.recorders.count, 0, "recorder should have been released")
 
         let gaugeAgain = Gauge(label: name)

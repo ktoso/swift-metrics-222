@@ -47,16 +47,22 @@ internal final class TestMetrics: MetricsFactory {
         }
     }
 
-    func destroyCounter<C: Counter>(_ counter: C) {
-        self.counters.removeValue(forKey: counter.label)
+    func destroyCounter(_ counterHandler: CounterHandler) {
+        if let testCounter = counterHandler as? TestCounter {
+            self.counters.removeValue(forKey: testCounter.label)
+        }
     }
 
-    func destroyRecorder<R: Recorder>(_ recorder: R) {
-        self.recorders.removeValue(forKey: recorder.label)
+    func destroyRecorder(_ recorderHandler: RecorderHandler) {
+        if let testRecorder = recorderHandler as? TestRecorder {
+            self.recorders.removeValue(forKey: testRecorder.label)
+        }
     }
 
-    func destroyTimer<T: Timer>(_ timer: T) {
-        self.timers.removeValue(forKey: timer.label)
+    func destroyTimer(_ timerHandler: TimerHandler) {
+        if let testTimer = timerHandler as? TestTimer {
+            self.timers.removeValue(forKey: testTimer.label)
+        }
     }
 }
 
@@ -145,6 +151,17 @@ internal class TestTimer: TimerHandler, Equatable {
             values.append((Date(), duration))
         }
         print("recoding \(duration) \(self.label)")
+    }
+
+    func destroy() {
+        // Depending on metrics backend implementation the handler could:
+        // a) keep a reference to the factory that created it, and delegate the destroy there
+        //    - this is better than reaching to MetricsSystem.factory, since e.g. in tests the factory could have changed,
+        //      although in user applications it is guaranteed that the factory is only bootstrapped once.
+        // b) not have any state to destroy in the factory, and only clear its state locally inside here
+        // c) explicitly decide to ignore destroying, and implement this as no-op
+        let factory = MetricsSystem.factory // FIXME: makes unsafe to run tests in parallel; rather, pass reference when creating handler
+        factory.destroyTimer(self)
     }
 
     public static func == (lhs: TestTimer, rhs: TestTimer) -> Bool {
