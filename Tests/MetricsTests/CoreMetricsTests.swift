@@ -257,7 +257,7 @@ class MetricsTests: XCTestCase {
         XCTAssertEqual(metrics.recorders.count, 1, "recorder should have been stored")
 
         let identity = ObjectIdentifier(recorder)
-        MetricsSystem.factory.remove(metric: gauge)
+        MetricsSystem.factory.destroyRecorder(gauge)
         XCTAssertEqual(metrics.recorders.count, 0, "recorder should have been released")
 
         let gaugeAgain = Gauge(label: name)

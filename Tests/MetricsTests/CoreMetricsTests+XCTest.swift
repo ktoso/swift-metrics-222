@@ -23,24 +23,22 @@ import XCTest
 ///
 
 extension MetricsTests {
-
-   static var allTests : [(String, (MetricsTests) -> () throws -> Void)] {
-      return [
-                ("testCounters", testCounters),
-                ("testCounterBlock", testCounterBlock),
-                ("testRecorders", testRecorders),
-                ("testRecordersInt", testRecordersInt),
-                ("testRecordersFloat", testRecordersFloat),
-                ("testRecorderBlock", testRecorderBlock),
-                ("testTimers", testTimers),
-                ("testTimerBlock", testTimerBlock),
-                ("testTimerVariants", testTimerVariants),
-                ("testGauge", testGauge),
-                ("testGaugeBlock", testGaugeBlock),
-                ("testMUX", testMUX),
-                ("testCustomFactory", testCustomFactory),
-                ("testReleasingMetrics", testReleasingMetrics),
+    static var allTests: [(String, (MetricsTests) -> () throws -> Void)] {
+        return [
+            ("testCounters", testCounters),
+            ("testCounterBlock", testCounterBlock),
+            ("testRecorders", testRecorders),
+            ("testRecordersInt", testRecordersInt),
+            ("testRecordersFloat", testRecordersFloat),
+            ("testRecorderBlock", testRecorderBlock),
+            ("testTimers", testTimers),
+            ("testTimerBlock", testTimerBlock),
+            ("testTimerVariants", testTimerVariants),
+            ("testGauge", testGauge),
+            ("testGaugeBlock", testGaugeBlock),
+            ("testMUX", testMUX),
+            ("testCustomFactory", testCustomFactory),
+            ("testReleasingMetrics", testReleasingMetrics),
         ]
     }
 }
-

@@ -16,9 +16,10 @@
 @testable import class CoreMetrics.Timer
 import Foundation
 
-
-internal class TestMetrics: MetricsFactory {
-    private let lock = NSLock() // TODO: consider lock per cache?
+/// Metrics factory which allows inspecting recorded metrics programmatically.
+/// Only intended for tests of the Metrics API itself.
+internal final class TestMetrics: MetricsFactory {
+    private let lock = NSLock()
     var counters = [String: CounterHandler]()
     var recorders = [String: RecorderHandler]()
     var timers = [String: TimerHandler]()
@@ -46,17 +47,16 @@ internal class TestMetrics: MetricsFactory {
         }
     }
 
-    public func remove<M: Metric>(metric: M) {
-        switch metric {
-        case let counter as Counter:
-            self.counters.removeValue(forKey: counter.label)
-        case let recorder as Recorder:
-            self.recorders.removeValue(forKey: recorder.label)
-        case let timer as Timer:
-            self.timers.removeValue(forKey: timer.label)
-        default:
-            return // nothing to do, not a metric that we created/stored
-        }
+    func destroyCounter<C: Counter>(_ counter: C) {
+        self.counters.removeValue(forKey: counter.label)
+    }
+
+    func destroyRecorder<R: Recorder>(_ recorder: R) {
+        self.recorders.removeValue(forKey: recorder.label)
+    }
+
+    func destroyTimer<T: Timer>(_ timer: T) {
+        self.timers.removeValue(forKey: timer.label)
     }
 }
 

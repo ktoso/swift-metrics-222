@@ -34,13 +34,10 @@ public protocol CounterHandler: AnyObject {
     func reset()
 }
 
-/// All metric types conform to this protocol, allowing for APIs accepting "any metric."
-public protocol Metric {}
-
 /// A counter is a cumulative metric that represents a single monotonically increasing counter whose value can only increase or be reset to zero.
 /// For example, you can use a counter to represent the number of requests served, tasks completed, or errors.
 /// This is the user facing Counter API. Its behavior depends on the `CounterHandler` implementation
-public class Counter: Metric {
+public class Counter {
     @usableFromInline
     var handler: CounterHandler
     public let label: String
@@ -121,7 +118,7 @@ public protocol RecorderHandler: AnyObject {
 
 /// A recorder collects observations within a time window (usually things like response sizes) and *can* provide aggregated information about the data sample, for example count, sum, min, max and various quantiles.
 /// This is the user facing Recorder API. Its behavior depends on the `RecorderHandler` implementation
-public class Recorder: Metric {
+public class Recorder {
     @usableFromInline
     var handler: RecorderHandler
     public let label: String
@@ -211,7 +208,7 @@ public protocol TimerHandler: AnyObject {
 /// A timer collects observations within a time window (usually things like request durations) and provides aggregated information about the data sample.
 /// For example min, max and various quantiles. It is similar to a `Recorder` but specialized for values that represent durations.
 /// This is the user facing Timer API. Its behavior depends on the `TimerHandler` implementation
-public class Timer: Metric {
+public class Timer {
     @usableFromInline
     var handler: TimerHandler
     public let label: String
@@ -358,11 +355,9 @@ public protocol MetricsFactory {
     /// One such example may be a library which directly emits recorded values to some underlying shared storage engine,
     /// which means that the `MetricHandler` objects themselves are light-weight by nature, and thus no lifecycle
     /// management and releasing of such metrics handlers is necessary.
-    func remove<M: Metric>(metric: M)
-    // alternatively, delete the Metric type and provide overloads:
-    // func remove<C: Counter>(_ counter: C)
-    // func remove<R: Recorder>(_ recorder: R)
-    // func remove<T: Timer>(_ timer: T)
+    func destroyCounter<C: Counter>(_ counter: C)
+    func destroyRecorder<R: Recorder>(_ recorder: R)
+    func destroyTimer<T: Timer>(_ timer: T)
 }
 
 /// The `MetricsSystem` is a global facility where the default metrics backend implementation (`MetricsFactory`) can be
@@ -419,9 +414,21 @@ public final class MultiplexMetricsHandler: MetricsFactory {
         return MuxTimer(factories: self.factories, label: label, dimensions: dimensions)
     }
 
-    public func remove<M: Metric>(metric: M) {
+    public func destroyCounter<C: Counter>(_ counter: C) {
         for factory in self.factories {
-            factory.remove(metric: metric)
+            factory.destroyCounter(counter)
+        }
+    }
+
+    public func destroyRecorder<R: Recorder>(_ recorder: R) {
+        for factory in self.factories {
+            factory.destroyRecorder(recorder)
+        }
+    }
+
+    public func destroyTimer<T: Timer>(_ timer: T) {
+        for factory in self.factories {
+            factory.destroyTimer(timer)
         }
     }
 
@@ -470,6 +477,7 @@ public final class MultiplexMetricsHandler: MetricsFactory {
 
 /// Ships with the metrics module, used for initial bootstraping.
 public final class NOOPMetricsHandler: MetricsFactory, CounterHandler, RecorderHandler, TimerHandler {
+
     public static let instance = NOOPMetricsHandler()
 
     private init() {}
@@ -477,18 +485,16 @@ public final class NOOPMetricsHandler: MetricsFactory, CounterHandler, RecorderH
     public func makeCounter(label: String, dimensions: [(String, String)]) -> CounterHandler {
         return self
     }
-
     public func makeRecorder(label: String, dimensions: [(String, String)], aggregate: Bool) -> RecorderHandler {
         return self
     }
-
     public func makeTimer(label: String, dimensions: [(String, String)]) -> TimerHandler {
         return self
     }
 
-    public func remove<M: Metric>(metric: M) {
-        // no-op
-    }
+    public func destroyCounter<C: Counter>(_ counter: C) {}
+    public func destroyRecorder<R: Recorder>(_ recorder: R) {}
+    public func destroyTimer<T: Timer>(_ timer: T) {}
 
     public func increment(by: Int64) {}
     public func reset() {}
